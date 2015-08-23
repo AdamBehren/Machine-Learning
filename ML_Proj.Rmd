@@ -1,0 +1,57 @@
+---
+title: "ML_Project"
+author: "Adam"
+date: "23 August 2015"
+output: html_document
+---
+
+#Background
+
+The goal of this project is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants to predict the type of exercise there are performing. The data was collected performing barbell lifts correctly and incorrectly in 5 different ways. 
+
+#Processing the data
+The data is loaded with the the following code:
+
+```{r}
+library(AppliedPredictiveModeling)
+library(caret)
+set.seed(1111)
+pml_data <- read.csv(url("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"))
+pml_test <- read.csv(url("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"))
+
+colheadings <- c("gyros_forearm_x", "gyros_forearm_y", "gyros_forearm_z", "accel_forearm_x", "accel_forearm_y", "accel_forearm_z", "magnet_forearm_x", "magnet_forearm_y", "magnet_forearm_z", "total_accel_forearm", "gyros_dumbbell_x", "gyros_dumbbell_y", "gyros_dumbbell_z", "accel_dumbbell_x", "accel_dumbbell_y", "accel_dumbbell_z", "magnet_dumbbell_x", "magnet_dumbbell_y", "magnet_dumbbell_z", "roll_belt", "pitch_belt", "yaw_belt", "total_accel_belt", "gyros_belt_x", "gyros_belt_y", "gyros_belt_z", "accel_belt_x", "accel_belt_y", "accel_belt_z", "magnet_belt_x", "magnet_belt_y", "magnet_belt_z", "roll_arm", "pitch_arm", "yaw_arm", "total_accel_arm", "gyros_arm_x", "gyros_arm_y", "gyros_arm_z", "accel_arm_x", "accel_arm_y", "accel_arm_z", "magnet_arm_x", "magnet_arm_y", "magnet_arm_z", "roll_dumbbell", "pitch_dumbbell", "yaw_dumbbell", "total_accel_dumbbell", "roll_forearm", "pitch_forearm", "yaw_forearm", "total_accel_forearm", "classe")
+colheadingstest <- c("gyros_forearm_x", "gyros_forearm_y", "gyros_forearm_z", "accel_forearm_x", "accel_forearm_y", "accel_forearm_z", "magnet_forearm_x", "magnet_forearm_y", "magnet_forearm_z", "total_accel_forearm", "gyros_dumbbell_x", "gyros_dumbbell_y", "gyros_dumbbell_z", "accel_dumbbell_x", "accel_dumbbell_y", "accel_dumbbell_z", "magnet_dumbbell_x", "magnet_dumbbell_y", "magnet_dumbbell_z", "roll_belt", "pitch_belt", "yaw_belt", "total_accel_belt", "gyros_belt_x", "gyros_belt_y", "gyros_belt_z", "accel_belt_x", "accel_belt_y", "accel_belt_z", "magnet_belt_x", "magnet_belt_y", "magnet_belt_z", "roll_arm", "pitch_arm", "yaw_arm", "total_accel_arm", "gyros_arm_x", "gyros_arm_y", "gyros_arm_z", "accel_arm_x", "accel_arm_y", "accel_arm_z", "magnet_arm_x", "magnet_arm_y", "magnet_arm_z", "roll_dumbbell", "pitch_dumbbell", "yaw_dumbbell", "total_accel_dumbbell", "roll_forearm", "pitch_forearm", "yaw_forearm", "total_accel_forearm")
+pml_data_sub <- pml_data[,colheadings]
+pml_test_sub <- pml_test[,colheadingstest]
+pml_data_sub <- pml_data_sub[complete.cases(pml_data_sub),]
+pml_data_sub$classe <- as.factor(pml_data_sub$classe)
+
+```
+
+#Dividing the data up into a training and test set
+
+```{r}
+#subsetting to create training and test data
+pml_trainIndex = createDataPartition(pml_data_sub$classe, p = 0.7)[[1]]
+pml_training = pml_data_sub[pml_trainIndex,]
+pml_testing = pml_data_sub[-pml_trainIndex,]
+```
+
+#Performing machine learning on the data. 
+Random forests techniques are used firstly to create a model based on the training data. This is then validated against the test data. 
+
+```{r, cache=TRUE}
+#Random Forest
+modelRF <- train(as.factor(classe) ~ ., data = pml_training, method = "rf",metric="Accuracy")
+predRF <- predict(modelRF$finalModel, newdata=pml_testing)
+predRF_train <- predict(modelRF$finalModel, newdata=pml_training)
+confusionMatrix(predRF,pml_testing$classe)
+```
+
+Based on the above the model is predicting 99.26% of the training set. If the model has not been overfitted to the training set a similar prediction rate is expected on the test set.  
+
+```{r, cache=TRUE}
+confusionMatrix(predRF_train, pml_training$classe)
+```
+
+Applying the trained model to the test set the model predicts correctly 99.2% of the test set indicating that the model has not been overfitted to the test set and is an accurate predictor of the type of exercise performed.  
